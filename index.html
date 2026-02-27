@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌿 कृषी डॉक्टर - AI Crop Advisor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f3d1a 0%, #1a5c28 40%, #0d4a2a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 560px;
+      width: 100%;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+    }
+
+    .header { text-align: center; margin-bottom: 32px; }
+    .logo { font-size: 48px; margin-bottom: 8px; }
+    h1 { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 4px; font-family: 'Noto Sans Devanagari', sans-serif; }
+    .subtitle { color: rgba(255,255,255,0.6); font-size: 14px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+
+    input[type="text"], select {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]::placeholder { color: rgba(255,255,255,0.35); }
+    input[type="text"]:focus, select:focus { border-color: #56c96e; }
+    select option { background: #1a5c28; color: #fff; }
+
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.25);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.dragover { border-color: #56c96e; background: rgba(86,201,110,0.08); }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-text { color: rgba(255,255,255,0.7); font-size: 14px; }
+    .upload-text span { color: #56c96e; font-weight: 600; }
+
+    #preview-container { display: none; margin-top: 12px; }
+    #preview-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; }
+
+    button[type="submit"] {
+      width: 100%;
+      background: linear-gradient(135deg, #56c96e, #2d9e4e);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 17px;
+      font-weight: 600;
+      font-family: 'Noto Sans Devanagari', sans-serif;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(86,201,110,0.35);
+      margin-top: 8px;
+    }
+    button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(86,201,110,0.45); }
+    button[type="submit"]:active { transform: translateY(0); }
+    button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    #result-section { display: none; margin-top: 24px; }
+    .result-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(86,201,110,0.4);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .result-title { color: #56c96e; font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .result-text { color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.7; white-space: pre-wrap; font-family: 'Noto Sans Devanagari', sans-serif; }
+
+    .loading { display: none; text-align: center; margin-top: 20px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #56c96e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { color: rgba(255,255,255,0.6); font-size: 14px; }
+
+    .error-box { background: rgba(220,50,50,0.15); border: 1px solid rgba(220,50,50,0.4); border-radius: 12px; padding: 16px; color: #ff8080; font-size: 14px; margin-top: 16px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">🌿</div>
+      <h1>कृषी डॉक्टर AI</h1>
+      <p class="subtitle">Upload your crop photo · Get AI advice in Marathi</p>
+    </div>
+
+    <form id="crop-form">
+      <div class="form-group">
+        <label>📍 जिल्हा / District</label>
+        <select name="district">
+          <option value="">निवडा / Select</option>
+          <option>Pune</option><option>Nashik</option><option>Ahmednagar</option>
+          <option>Solapur</option><option>Aurangabad</option><option>Latur</option>
+          <option>Nagpur</option><option>Amravati</option><option>Buldhana</option>
+          <option>Sangli</option><option>Satara</option><option>Kolhapur</option>
+          <option>Nanded</option><option>Jalgaon</option><option>Yavatmal</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>🌾 पीक / Crop Name (optional)</label>
+        <input type="text" name="crop" placeholder="e.g. Onion, Cotton, Soybean, Tomato..." />
+      </div>
+
+      <div class="form-group">
+        <label>📷 पिकाचा फोटो / Upload Crop Photo</label>
+        <div class="upload-area" id="upload-area">
+          <input type="file" name="photo" accept="image/*" id="file-input" required />
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">Drop image here or <span>browse</span></div>
+        </div>
+        <div id="preview-container">
+          <img id="preview-img" src="" alt="Preview" />
+        </div>
+      </div>
+
+      <button type="submit" id="submit-btn">🔍 निदान सुरु करा / Diagnose Now</button>
+    </form>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>AI विश्लेषण करत आहे... / AI is analyzing your crop...</p>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div id="result-section">
+      <div class="result-box">
+        <div class="result-title">🌱 AI निदान / Diagnosis</div>
+        <div class="result-text" id="result-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // IMPORTANT: Paste your n8n Production Webhook URL here
+    // ============================================================
+    const WEBHOOK_URL = "PASTE_YOUR_N8N_WEBHOOK_URL_HERE";
+    // ============================================================
+
+    const fileInput = document.getElementById('file-input');
+    const uploadArea = document.getElementById('upload-area');
+    const previewImg = document.getElementById('preview-img');
+    const previewContainer = document.getElementById('preview-container');
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        previewImg.src = URL.createObjectURL(file);
+        previewContainer.style.display = 'block';
+      }
+    });
+
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event('change'));
+    });
+
+    document.getElementById('crop-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const loading = document.getElementById('loading');
+      const resultSection = document.getElementById('result-section');
+      const errorBox = document.getElementById('error-box');
+
+      if (!fileInput.files[0]) { alert('Photo select karo please.'); return; }
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      resultSection.style.display = 'none';
+      errorBox.style.display = 'none';
+
+      try {
+        const formData = new FormData(e.target);
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        const text = data.result || data.text || data.message || data.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
+        document.getElementById('result-text').textContent = text;
+        resultSection.style.display = 'block';
+      } catch (err) {
+        errorBox.textContent = '⚠️ Error: Could not reach the AI server. Check your webhook URL.';
+        errorBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
